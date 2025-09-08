@@ -1,24 +1,29 @@
-cmake_minimum_required(VERSION 2.6)
+# Modified for library-use by Hiroki Shibata
+# external/Re-Pair/CMakeLists.txt
+cmake_minimum_required(VERSION 3.16)
+project(RePair LANGUAGES CXX)
 
-# Set a default build type if none was specified
+add_library(re_pair STATIC
+        rp_lib.cpp
+)
+
+target_compile_features(re_pair PUBLIC cxx_std_17)
+
+target_include_directories(re_pair
+        PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/internal>
+        $<INSTALL_INTERFACE:include/RePair>
+)
+
 if(NOT CMAKE_BUILD_TYPE)
-  message(STATUS "Setting build type to 'Release' as none was specified.")
-  set(CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build." FORCE)
+  set(CMAKE_BUILD_TYPE Release CACHE STRING "" FORCE)
 endif()
 
-#set( CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/.. )
+target_compile_options(re_pair PRIVATE
+        "$<$<CONFIG:Release>:-Ofast;-fstrict-aliasing;-DNDEBUG>"
+        "$<$<CONFIG:RelWithDebInfo>:-Ofast;-fstrict-aliasing>"
+        "$<$<CONFIG:Debug>:-O0;-g>"
+)
 
-project (repair)
-
-include_directories(${PROJECT_SOURCE_DIR}/internal)
-include_directories(${PROJECT_SOURCE_DIR})
-
-message("Building in ${CMAKE_BUILD_TYPE} mode")
-
-set(CMAKE_CXX_FLAGS "--std=c++11")
-
-set(CMAKE_CXX_FLAGS_DEBUG "-O0 -ggdb -g -p")
-set(CMAKE_CXX_FLAGS_RELEASE "-ggdb -Ofast -fstrict-aliasing -DNDEBUG -march=native")
-set(CMAKE_CXX_FLAGS_RELWITHDEBINFO "-g -ggdb -Ofast -fstrict-aliasing -march=native")
-
-add_executable(rp rp.cpp)
+add_library(RePair::re_pair ALIAS re_pair)
