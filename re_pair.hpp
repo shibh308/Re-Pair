@@ -34,9 +34,9 @@ namespace rp {
     std::vector<itype> T_vec;
   };
   RPRePair compute_repair(const std::vector<uint8_t>& in_bytes);
-  void compress_and_write(const std::vector<uint8_t>& in_bytes, const std::string& out);
-  void compress_file(const std::string& in, const std::string& out);
-  void decompress_file(const std::string& in, const std::string& out);
+  void encode_repair(RPRePair rp, const std::string& out);
+  RPRePair decode_repair(const std::string& in);
+  std::vector<uint8_t> reconstruct(const RPRePair& rp);
 } // namespace re_pair
 
 

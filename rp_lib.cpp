@@ -458,40 +458,40 @@ namespace rp {
     };
   }
 
-  void compress_and_write(const std::vector<uint8_t>& in_bytes, const std::string& out){
-    detail::CodecImpl<false> impl;
-    // std::cout << "Compressing file " << in << std::endl;
-    // std::cout << "Output will be saved to file " << out << std::endl << std::endl;
-    impl.compute_repair(in_bytes);
+  void encode_repair(RPRePair rp, const std::string& out) {
     packed_gamma_file3<typename detail::CodecImpl<false>::itype> out_file(out);
-    out_file.compress_and_store(impl.A, impl.G, impl.T_vec);
+    out_file.compress_and_store(rp.A, rp.G, rp.T_vec);
   }
 
-  void compress_file(const std::string& in, const std::string& out) {
-    detail::CodecImpl<false> impl;
-    // std::cout << "Compressing file " << in << std::endl;
-    // std::cout << "Output will be saved to file " << out << std::endl << std::endl;
-    impl.compute_repair(in);
-    packed_gamma_file3<typename detail::CodecImpl<false>::itype> out_file(out);
-    out_file.compress_and_store(impl.A, impl.G, impl.T_vec);
-  }
-
-  void decompress_file(const std::string& in, const std::string& out) {
-    // std::cout << "Decompressing archive " << in << std::endl;
-    // std::cout << "Output will be saved to " << out << std::endl;
+  RPRePair decode_repair(const std::string& in) {
     auto pgf = packed_gamma_file3<>(in, false);
 
-    {
-      detail::CodecImpl<false> impl32;
-      std::vector<typename detail::CodecImpl<false>::itype> A;
-      std::vector<std::pair<typename detail::CodecImpl<false>::itype,typename detail::CodecImpl<false>::itype> > G;
-      std::vector<typename detail::CodecImpl<false>::itype> Tc;
-      pgf.read_and_decompress(A,G,Tc);
-      std::ofstream ofs(out, std::ios::binary);
-      impl32.decompress_vec(A,G,Tc,ofs);
-      ofs.close();
-    }
-    // std::cout << "done." << std::endl;
-  }
+    std::vector<RPRePair::itype> A;
+    std::vector<std::pair<RPRePair::itype, RPRePair::itype>> G;
+    std::vector<RPRePair::itype> T_vec;
 
+    pgf.read_and_decompress(A, G, T_vec);
+    return {A, G, T_vec};
+  }
+  std::vector<uint8_t> reconstruct(const rp::RPRePair& rp) {
+    using itype = rp::RPRePair::itype;
+    std::vector<uint8_t> out;
+    std::stack<itype> st;
+
+    for (itype sym : rp.T_vec) {
+      st.push(sym);
+      while (!st.empty()) {
+        itype x = st.top();
+        st.pop();
+        if (x < rp.A.size()) {
+          out.push_back(static_cast<uint8_t>(rp.A[x]));
+        } else {
+          auto [lhs, rhs] = rp.G[x - rp.A.size()];
+          st.push(rhs);
+          st.push(lhs);
+        }
+      }
+    }
+    return out;
+  }
 } // namespace re_pair
